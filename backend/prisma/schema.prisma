@@ -1,0 +1,78 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Hospital {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  city  String
+  users User[]
+  protocolInstances ProtocolInstance[]
+}
+
+model User {
+  id           Int            @id @default(autoincrement())
+  name         String
+  email        String         @unique
+  passwordHash String
+  role         Role           @relation(fields: [roleId], references: [id])
+  roleId       Int
+  hospital     Hospital       @relation(fields: [hospitalId], references: [id])
+  hospitalId   Int
+  collaborations InstanceCollaborator[]
+  authoredData   InstanceData[]
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique // e.g., 'ADMIN', 'MEDICO', 'RELATORIO'
+  users User[]
+}
+
+model ProtocolDefinition {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  structureJson Json   @db.Json
+  instances   ProtocolInstance[]
+}
+
+model ProtocolInstance {
+  id                  Int            @id @default(autoincrement())
+  protocolDefinition  ProtocolDefinition @relation(fields: [protocolDefinitionId], references: [id])
+  protocolDefinitionId Int
+  hospital            Hospital       @relation(fields: [hospitalId], references: [id])
+  hospitalId          Int
+  patientIdentifier   String
+  status              String         // e.g., 'IN_PROGRESS', 'COMPLETED', 'CANCELED'
+  outcome             String?        // e.g., 'ALTA', 'OBITO'
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  collaborators       InstanceCollaborator[]
+  data                InstanceData[]
+}
+
+model InstanceCollaborator {
+  id         Int              @id @default(autoincrement())
+  instance   ProtocolInstance @relation(fields: [instanceId], references: [id])
+  instanceId Int
+  user       User             @relation(fields: [userId], references: [id])
+  userId     Int
+}
+
+model InstanceData {
+  id         Int              @id @default(autoincrement())
+  instance   ProtocolInstance @relation(fields: [instanceId], references: [id])
+  instanceId Int
+  stepId     String
+  value      String
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  author     User             @relation(fields: [authorId], references: [id])
+  authorId   Int
+}
